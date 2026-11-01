@@ -215,11 +215,27 @@ def test_cli_exports(tmp_path):
 def test_ui_demo_and_changed_rules():
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30).run()
     assert not at.exception
-    assert [metric.value for metric in at.metric] == ["10", "7", "9", "30.0%"]
-    at.checkbox[0].uncheck().run()
-    assert not at.exception
     assert len(at.metric) == 0
-    assert any("Validar dados" in item.value for item in at.info)
-    at.button[0].click().run()
+    next(b for b in at.button if b.label == "Continuar para as regras →").click().run()
     assert not at.exception
-    assert [metric.value for metric in at.metric][:3] == ["10", "7", "7"]
+    assert any("O que precisa estar correto?" in title.value for title in at.title)
+    next(c for c in at.checkbox if c.label == "Detectar registros completamente idênticos").uncheck().run()
+    next(b for b in at.button if b.label == "Validar dados").click().run()
+    assert not at.exception
+    assert any("Auditoria concluída" in title.value for title in at.title)
+    assert at.session_state["result"].summary["findings"] == 7
+    assert at.session_state["result"].summary["affected_rows"] == 7
+    assert len(at.dataframe[0].value) == 7
+    next(b for b in at.button if b.label == "Editar regras").click().run()
+    assert not at.exception
+    assert not next(c for c in at.checkbox if c.label == "Detectar registros completamente idênticos").value
+    next(c for c in at.checkbox if c.label == "Detectar registros completamente idênticos").check().run()
+    next(b for b in at.button if b.label == "Validar dados").click().run()
+    assert not at.exception
+    assert at.session_state["result"].summary["findings"] == 9
+    next(r for r in at.radio if r.label == "Tipo de problema").set_value("invalid_date").run()
+    assert not at.exception
+    assert len(at.dataframe[0].value) == 1
+    next(b for b in at.button if b.label == "Outro arquivo").click().run()
+    next(r for r in at.radio if r.label == "Fonte").set_value("Enviar meu arquivo").run()
+    assert next(b for b in at.button if b.label == "Continuar para as regras →").disabled
