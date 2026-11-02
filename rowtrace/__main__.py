@@ -1,4 +1,4 @@
-"""Execução em lote: python -m datacheck arquivo.csv --orders --output relatorio."""
+"""Execução em lote: python -m rowtrace arquivo.csv --orders --output relatorio."""
 import argparse
 import json
 from pathlib import Path
@@ -16,7 +16,7 @@ def main():
     limitada. ValueError/OSError produzem mensagem no terminal e saída 2;
     erros de argumentos são tratados pelo argparse. O sucesso imprime o resumo.
     """
-    parser = argparse.ArgumentParser(description="DataCheck: validação local de CSV/XLSX")
+    parser = argparse.ArgumentParser(description="RowTrace: validação local de CSV/XLSX")
     parser.add_argument("file", type=Path)
     config = parser.add_mutually_exclusive_group()
     config.add_argument("--orders", action="store_true", help="Aplicar regras da demonstração de pedidos")
@@ -37,7 +37,7 @@ def main():
             (args.output / name).write_bytes(data)
         print(json.dumps(result.summary, ensure_ascii=False, indent=2))
     except (ValueError, OSError) as error:
-        parser.exit(2, f"DataCheck: {error}\n")
+        parser.exit(2, f"RowTrace: {error}\n")
 
 
 if __name__ == "__main__":

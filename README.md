@@ -1,8 +1,8 @@
-# DataCheck
+# RowTrace
 
 **Encontre o problema, localize o registro e organize a correção.**
 
-Uma planilha pode abrir normalmente e ainda conter duplicatas, campos vazios ou datas impossíveis. O DataCheck recebe CSV ou Excel, aplica regras configuráveis e mostra a origem de cada ocorrência. O fluxo segue três etapas: **Escolher arquivo → Definir regras → Conferir resultado**.
+Uma planilha pode abrir normalmente e ainda conter duplicatas, campos vazios ou datas impossíveis. O RowTrace recebe CSV ou Excel, aplica regras configuráveis e mostra a origem de cada ocorrência. O fluxo segue três etapas: **Escolher arquivo → Definir regras → Conferir resultado**.
 
 ![Resultado da auditoria com fila de correção e filtro de problemas](docs/images/auditoria.jpg)
 
@@ -112,8 +112,8 @@ O CSV neutraliza textos que podem ser interpretados como fórmulas em leitores d
 Com o ambiente instalado, execute na raiz do projeto:
 
 ```powershell
-.\.venv\Scripts\python.exe -m datacheck data/pedidos_demo.csv --orders --output relatorio
-.\.venv\Scripts\python.exe -m datacheck minha_base.csv --rules regras.json --delimiter ";" --output relatorio
+.\.venv\Scripts\python.exe -m rowtrace data/pedidos_demo.csv --orders --output relatorio
+.\.venv\Scripts\python.exe -m rowtrace minha_base.csv --rules regras.json --delimiter ";" --output relatorio
 ```
 
 O primeiro comando aplica as regras de pedidos. O segundo usa uma configuração exportada da interface. Sem `--orders` ou `--rules`, somente registros completamente idênticos são verificados. São criados `relatorio.html`, `relatorio.json` e `ocorrencias.csv` na pasta indicada.
@@ -155,7 +155,7 @@ A explicação pode conter imprecisões; contagens e evidências determinística
 ## API local
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn datacheck.api:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn rowtrace.api:app --host 127.0.0.1 --port 8000
 ```
 
 Documentação interativa: `http://127.0.0.1:8000/docs`.
@@ -191,11 +191,11 @@ flowchart LR
 | Caminho | Responsabilidade |
 |---|---|
 | `app.py` | Fluxo de auditoria, configuração, resultado e exportação |
-| `datacheck/io.py` | Leitura, formatos e limites de entrada |
-| `datacheck/engine.py` | Regras, SQL em memória e evidências |
-| `datacheck/reports.py` | Diagnóstico local e relatórios |
-| `datacheck/ai.py` | Explicação generativa a partir de contagens |
-| `datacheck/api.py` | Integração HTTP |
+| `rowtrace/io.py` | Leitura, formatos e limites de entrada |
+| `rowtrace/engine.py` | Regras, SQL em memória e evidências |
+| `rowtrace/reports.py` | Diagnóstico local e relatórios |
+| `rowtrace/ai.py` | Explicação generativa a partir de contagens |
+| `rowtrace/api.py` | Integração HTTP |
 | `benchmark.py` | Geração sintética, verificação das ocorrências e medições |
 
 O [estudo de caso](docs/ESTUDO_DE_CASO.md) reúne o problema, as decisões e as evidências de funcionamento. A demonstração usa dados fictícios. O processamento da interface fica em memória por sessão; a execução em lote grava os relatórios na pasta indicada. Interface e API não oferecem autenticação para hospedagem compartilhada; a exposição externa exige controle de acesso, limites de requisição e política de retenção.

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from .engine import Rules, audit_table
 from .io import MAX_BYTES, read_table
 
-app = FastAPI(title="DataCheck", version="1.0.0", description="Validação de CSV/XLSX com evidência por registro.")
+app = FastAPI(title="RowTrace", version="1.0.0", description="Validação de CSV/XLSX com evidência por registro.")
 
 
 @app.get("/health")

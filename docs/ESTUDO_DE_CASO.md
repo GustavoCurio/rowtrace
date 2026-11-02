@@ -1,6 +1,6 @@
-# DataCheck — qualidade de dados antes da análise
+# RowTrace — qualidade de dados antes da análise
 
-Uma planilha pode abrir normalmente e ainda conter pedidos duplicados, identificadores repetidos, valores negativos ou datas impossíveis. Esses problemas afetam os indicadores derivados da base. O DataCheck automatiza verificações configuráveis e entrega evidência para cada ocorrência.
+Uma planilha pode abrir normalmente e ainda conter pedidos duplicados, identificadores repetidos, valores negativos ou datas impossíveis. Esses problemas afetam os indicadores derivados da base. O RowTrace automatiza verificações configuráveis e entrega evidência para cada ocorrência.
 
 ## Fluxo do produto
 
@@ -16,13 +16,13 @@ A base original é preservada. O produto sugere verificações na origem porque 
 
 | Componente | Responsabilidade |
 |---|---|
-| `datacheck/io.py` | Leitura, limites, codificação e rejeição de fórmulas |
-| `datacheck/engine.py` | Configuração validada, regras e evidências |
-| `datacheck/reports.py` | Explicação local e exportações |
-| `datacheck/ai.py` | Explicação generativa opcional a partir de agregados |
+| `rowtrace/io.py` | Leitura, limites, codificação e rejeição de fórmulas |
+| `rowtrace/engine.py` | Configuração validada, regras e evidências |
+| `rowtrace/reports.py` | Explicação local e exportações |
+| `rowtrace/ai.py` | Explicação generativa opcional a partir de agregados |
 | `app.py` | Interface, seleção de regras e isolamento por sessão |
-| `datacheck/api.py` | Integração por requisição multipart |
-| `datacheck/__main__.py` | Execução em lote |
+| `rowtrace/api.py` | Integração por requisição multipart |
+| `rowtrace/__main__.py` | Execução em lote |
 | `benchmark.py` | Geração sintética e medição reproduzível |
 
 ## Decisões técnicas

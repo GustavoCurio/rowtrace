@@ -9,8 +9,8 @@ from time import perf_counter
 
 import pandas as pd
 
-from datacheck.engine import audit_table, orders_rules
-from datacheck.io import read_table
+from rowtrace.engine import audit_table, orders_rules
+from rowtrace.io import read_table
 
 
 def synthetic(size):

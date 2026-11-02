@@ -13,11 +13,11 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from datacheck.ai import explain_ai
-from datacheck.api import app
-from datacheck.engine import Rules, audit_table, orders_rules, parse_number
-from datacheck.io import MAX_BYTES, read_table
-from datacheck.reports import findings_csv, report_html, report_json
+from rowtrace.ai import explain_ai
+from rowtrace.api import app
+from rowtrace.engine import Rules, audit_table, orders_rules, parse_number
+from rowtrace.io import MAX_BYTES, read_table
+from rowtrace.reports import findings_csv, report_html, report_json
 
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = (ROOT / "data/pedidos_demo.csv").read_bytes()
@@ -206,7 +206,7 @@ def test_api_xlsx():
 
 def test_cli_exports(tmp_path):
     target = tmp_path / "report"
-    process = subprocess.run([sys.executable, "-m", "datacheck", str(ROOT / "data/pedidos_demo.csv"), "--orders", "--output", str(target)], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
+    process = subprocess.run([sys.executable, "-m", "rowtrace", str(ROOT / "data/pedidos_demo.csv"), "--orders", "--output", str(target)], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
     assert process.returncode == 0, process.stderr
     assert json.loads((target / "relatorio.json").read_text("utf-8"))["summary"]["findings"] == 9
     assert {f.name for f in target.iterdir()} == {"relatorio.json", "relatorio.html", "ocorrencias.csv"}

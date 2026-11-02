@@ -77,12 +77,12 @@ def report_html(audit):
     rows = "".join("<tr>" + "".join(f"<td>{esc(item[key])}</td>" for key in FIELDS) + "</tr>" for item in audit.findings)
     rules = esc(json.dumps(audit.rules, ensure_ascii=False, indent=2))
     return f"""<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DataCheck · Relatório de qualidade</title><style>
+<title>RowTrace · Relatório de qualidade</title><style>
 body{{font:16px system-ui;margin:40px auto;padding:0 24px;max-width:1400px;color:#172b37;background:#f4f8fa}}
 h1{{color:#087f8c}}section{{background:white;padding:24px;border-radius:16px;margin:20px 0}}
 table{{border-collapse:collapse;width:100%;font-size:13px}}td,th{{border:1px solid #d7e3e7;padding:9px;text-align:left;overflow-wrap:anywhere}}
 thead{{background:#e2f3f2}}pre{{white-space:pre-wrap}}.scroll{{overflow:auto}}
-</style><h1>DataCheck</h1><p>Relatório de validação de dados</p>
+</style><h1>RowTrace</h1><p>Relatório de validação de dados</p>
 <section><b>{s['rows']} registros · {s['affected_rows']} com ocorrências · {s['findings']} ocorrências</b>
 <p>{s['rows_without_findings_pct']}% dos registros sem ocorrências nas regras selecionadas.</p>
 <p>Tempo do motor: {s['elapsed_ms']} ms. Cabeçalho = registro 1; o primeiro registro de dados = 2.

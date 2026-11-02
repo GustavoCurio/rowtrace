@@ -1,4 +1,4 @@
-"""Interface de diagnóstico, configuração e exportação do DataCheck."""
+"""Interface de diagnóstico, configuração e exportação do RowTrace."""
 import hashlib
 import json
 import os
@@ -7,14 +7,14 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from datacheck.ai import explain_ai
-from datacheck.engine import Rules, audit_table
-from datacheck.io import read_table
-from datacheck.reports import LABELS, explain_local, findings_csv, report_html, report_json
+from rowtrace.ai import explain_ai
+from rowtrace.engine import Rules, audit_table
+from rowtrace.io import read_table
+from rowtrace.reports import LABELS, explain_local, findings_csv, report_html, report_json
 
 
 ROOT = Path(__file__).parent
-st.set_page_config(page_title="DataCheck · Auditoria de arquivos", page_icon="◈", layout="wide")
+st.set_page_config(page_title="RowTrace · Auditoria de arquivos", page_icon="◈", layout="wide")
 st.markdown("""<style>
 .stApp{background:#faf9f6;color:#292721}.block-container{max-width:1330px;padding-top:4rem}
 h1,h2,h3{letter-spacing:-.04em}h1{font-size:2.6rem!important}
@@ -27,7 +27,7 @@ h1,h2,h3{letter-spacing:-.04em}h1{font-size:2.6rem!important}
 [data-testid="stDataFrame"]{border:1px solid #dedbd4;border-radius:8px}
 @media(max-width:700px){.step{font-size:12px}.steps{gap:6px}}
 </style>""", unsafe_allow_html=True)
-st.markdown('<div class="audit-brand">◈ DATACHECK / AUDITORIA DE DADOS</div>', unsafe_allow_html=True)
+st.markdown('<div class="audit-brand">◈ ROWTRACE / AUDITORIA DE DADOS</div>', unsafe_allow_html=True)
 # A navegação usa estado da sessão para manter arquivo e regras entre as etapas.
 step = st.session_state.get("audit_step", 1)
 steps = ["Escolher arquivo", "Definir regras", "Conferir resultado"]
@@ -184,8 +184,8 @@ with st.expander("Exportar relatório e configuração", expanded=True):
     st.subheader("Seu diagnóstico pronto para compartilhar")
     st.write("Baixe o relatório visual, as evidências para planilhas ou o resultado estruturado para integrar a outros sistemas.")
     a, b, c = st.columns(3)
-    a.download_button("Relatório visual · HTML", report_html(result), "datacheck-relatorio.html", "text/html", width="stretch")
-    b.download_button("Ocorrências · CSV", findings_csv(result), "datacheck-ocorrencias.csv", "text/csv", width="stretch")
-    c.download_button("Resultado completo · JSON", report_json(result), "datacheck-relatorio.json", "application/json", width="stretch")
+    a.download_button("Relatório visual · HTML", report_html(result), "rowtrace-relatorio.html", "text/html", width="stretch")
+    b.download_button("Ocorrências · CSV", findings_csv(result), "rowtrace-ocorrencias.csv", "text/csv", width="stretch")
+    c.download_button("Resultado completo · JSON", report_json(result), "rowtrace-relatorio.json", "application/json", width="stretch")
     st.download_button("Configuração das regras · JSON", json.dumps(result.rules, ensure_ascii=False, indent=2), "regras.json", "application/json")
     st.caption("O CSV de ocorrências neutraliza textos que podem ser interpretados como fórmulas. O JSON preserva os valores originais.")
