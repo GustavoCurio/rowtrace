@@ -9,6 +9,13 @@ from .reports import findings_csv, report_html, report_json
 
 
 def main():
+    """Executa uma auditoria em lote e grava HTML, JSON e CSV na pasta escolhida.
+
+    --orders aplica a demonstração; --rules lê configuração JSON. Sem ambos,
+    apenas duplicatas completas são verificadas. O arquivo é lido de forma
+    limitada. ValueError/OSError produzem mensagem no terminal e saída 2;
+    erros de argumentos são tratados pelo argparse. O sucesso imprime o resumo.
+    """
     parser = argparse.ArgumentParser(description="DataCheck: validação local de CSV/XLSX")
     parser.add_argument("file", type=Path)
     config = parser.add_mutually_exclusive_group()

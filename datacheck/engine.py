@@ -12,6 +12,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+# Configuração das regras e de seus formatos; relações entre campos são validadas antes do uso.
 class Rules(BaseModel):
     model_config = ConfigDict(extra="forbid")
     required: list[str] = Field(default_factory=list, max_length=50)
@@ -26,6 +27,14 @@ class Rules(BaseModel):
 
     @model_validator(mode="after")
     def consistent(self):
+        """Valida relações entre as regras e devolve a própria configuração.
+
+        Raises:
+            ValueError: Uma coluna não negativa não foi declarada numérica, ou
+                uma sequência compara colunas iguais/ausentes na lista de datas.
+
+        A existência das colunas na tabela é conferida somente em audit_table.
+        """
         if not set(self.nonnegative).issubset(self.numeric):
             raise ValueError("Colunas não negativas precisam estar nas colunas numéricas.")
         if any(a == b or a not in self.dates or b not in self.dates for a, b in self.date_pairs):
@@ -35,16 +44,33 @@ class Rules(BaseModel):
 
 @dataclass
 class Audit:
+    """Resultado da auditoria com resumo, ocorrências, configuração e nomes das colunas."""
     summary: dict
     findings: list[dict]
     rules: dict
     columns: list[str]
 
     def to_dict(self):
+        """Converte a auditoria e suas estruturas em dicionário para API e relatórios."""
         return asdict(self)
 
 
 def parse_number(value, style):
+    """Converte um valor textual em Decimal conforme uma gramática regional explícita.
+
+    Args:
+        value: Valor convertido em texto e aparado antes da leitura.
+        style: decimal_dot usa 1,234.56; decimal_comma usa 1.234,56.
+
+    Returns:
+        Decimal finito, preservando o sinal e evitando aritmética de float.
+
+    Raises:
+        ValueError: Separadores, agrupamentos ou conteúdo não seguem a gramática.
+
+    Aceita sinal opcional. Não aceita símbolo monetário, notação científica,
+    NaN ou infinito. O chamador deve usar um dos estilos definidos em Rules.
+    """
     text = str(value).strip()
     decimal, thousands = (".", ",") if style == "decimal_dot" else (",", ".")
     pattern = rf"[+-]?(?:\d+|\d{{1,3}}(?:{re.escape(thousands)}\d{{3}})+)(?:{re.escape(decimal)}\d+)?"
@@ -60,6 +86,19 @@ def parse_number(value, style):
 
 
 def parse_date(value, fmt):
+    """Valida formato e calendário e retorna datetime.date.
+
+    Args:
+        value: Data textual, com espaços externos removidos.
+        fmt: Formato esperado para texto não ISO: %Y-%m-%d ou %d/%m/%Y.
+
+    Returns:
+        Data sem hora. Texto ISO AAAA-MM-DD é aceito independentemente de fmt,
+        inclusive para datas nativas do Excel convertidas durante a leitura.
+
+    Raises:
+        ValueError: Formato incorreto ou data impossível no calendário.
+    """
     text = str(value).strip()
     # Datas nativas do Excel chegam como ISO, independentemente do formato textual escolhido.
     chosen = "%Y-%m-%d" if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text) else fmt
@@ -69,10 +108,31 @@ def parse_date(value, fmt):
 
 
 def _quoted(column):
+    """Delimita identificador SQL e duplica aspas internas; valores não são tratados aqui."""
     return '"' + column.replace('"', '""') + '"'
 
 
 def audit_table(frame: pd.DataFrame, rules: Rules):
+    """Aplica as regras em uma cópia textual da tabela e produz evidências por posição.
+
+    Args:
+        frame: DataFrame não vazio com nomes de colunas únicos e textuais.
+        rules: Configuração Rules já validada, com colunas presentes na tabela.
+
+    Returns:
+        Audit com ocorrências ordenadas por registro/regra/coluna, totais,
+        percentuais, regras aplicadas e tempo do motor em milissegundos.
+
+    Raises:
+        ValueError: Tabela vazia, cabeçalhos inválidos ou coluna configurada ausente.
+
+    Registros usam posições lógicas: cabeçalho = 1 e primeiro dado = 2.
+    Duplicatas sinalizam todos os participantes, inclusive o primeiro.
+    Números/datas vazios só geram ausência quando também são obrigatórios;
+    datas inválidas não geram uma segunda ocorrência de sequência.
+    O percentual sem ocorrências conta registros únicos, não células.
+    A leitura e seus limites de arquivo devem ocorrer antes, em read_table.
+    """
     started = perf_counter()
     if frame.empty or not frame.columns.is_unique or not all(isinstance(c, str) for c in frame.columns):
         raise ValueError("Forneça uma tabela não vazia com nomes de colunas únicos.")
@@ -85,10 +145,12 @@ def audit_table(frame: pd.DataFrame, rules: Rules):
     native_numeric = {tuple(item) for item in frame.attrs.get("native_numeric", [])}
 
     def add(position, code, column, value, message, suggestion, severity="erro"):
+        """Acrescenta uma evidência convertendo a posição de base zero para registro lógico."""
         findings.append({"record": int(position) + 2, "rule": code, "severity": severity,
                          "column": column, "value": str(value), "message": message, "suggestion": suggestion})
 
     with sqlite3.connect(":memory:") as connection:
+        # Nomes internos controlados evitam tratar cabeçalhos recebidos como SQL.
         sql_names = {column: f"c{index}" for index, column in enumerate(data.columns)}
         data.rename(columns=sql_names).to_sql("dados", connection, index=False, if_exists="replace")
         if rules.exact_duplicates:
@@ -132,6 +194,7 @@ def audit_table(frame: pd.DataFrame, rules: Rules):
             if parsed_dates[last][position] < parsed_dates[first][position]:
                 add(position, "date_order", f"{first} → {last}", data.loc[position, last], "A data final ocorre antes da inicial.", "Confira as duas datas na origem.")
     findings.sort(key=lambda item: (item["record"], item["rule"], item["column"]))
+    # Uma linha com vários erros afeta o percentual apenas uma vez.
     affected = len({item["record"] for item in findings})
     summary = {"rows": len(data), "columns": len(data.columns), "findings": len(findings),
                "affected_rows": affected, "rows_without_findings": len(data) - affected,
@@ -142,6 +205,7 @@ def audit_table(frame: pd.DataFrame, rules: Rules):
 
 
 def orders_rules():
+    """Retorna uma nova configuração para as colunas da demonstração de pedidos."""
     return Rules(required=["pedido_id", "cliente", "valor", "data_compra"], key="pedido_id",
                  numeric=["valor"], nonnegative=["valor"], dates=["data_compra", "data_entrega"],
                  date_pairs=[("data_compra", "data_entrega")])

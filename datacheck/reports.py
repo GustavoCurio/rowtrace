@@ -19,6 +19,11 @@ FIELDS = ["record", "rule", "severity", "column", "value", "message", "suggestio
 
 
 def explain_local(audit: Audit):
+    """Resume as contagens por regra e orienta a conferência na fonte original.
+
+    Recebe Audit e retorna texto em português. Usa apenas as ocorrências já
+    calculadas, sem modelo generativo ou alteração dos registros da base.
+    """
     s = audit.summary
     if not s["findings"]:
         return "Nenhuma ocorrência nas regras selecionadas. Isso não valida regras de negócio que não foram configuradas."
@@ -30,10 +35,16 @@ def explain_local(audit: Audit):
 
 
 def report_json(audit):
+    """Serializa Audit em bytes UTF-8, preservando os valores originais das evidências."""
     return json.dumps(audit.to_dict(), ensure_ascii=False, indent=2).encode("utf-8")
 
 
 def spreadsheet_safe(value):
+    """Converte valor em texto e neutraliza prefixos comuns de fórmulas com apóstrofo.
+
+    Usada somente na exportação para CSV. A regra contempla =, +, -, @ e
+    controles iniciais; não altera os valores mantidos na auditoria ou no JSON.
+    """
     text = str(value)
     if text.lstrip().startswith(("=", "+", "-", "@")) or text.startswith(("\t", "\r", "\n")):
         return "'" + text
@@ -41,6 +52,11 @@ def spreadsheet_safe(value):
 
 
 def findings_csv(audit):
+    """Exporta as ocorrências de Audit como bytes CSV UTF-8 com BOM.
+
+    Cabeçalhos são apresentados em português. Cada campo passa por
+    spreadsheet_safe; o BOM facilita a leitura de acentos em planilhas.
+    """
     buffer = io.StringIO(newline="")
     writer = csv.writer(buffer)
     writer.writerow(["registro", "regra", "severidade", "coluna", "valor", "problema", "sugestao"])
@@ -50,6 +66,12 @@ def findings_csv(audit):
 
 
 def report_html(audit):
+    """Gera relatório HTML autossuficiente em bytes UTF-8.
+
+    Inclui resumo, diagnóstico, evidências e configuração de Audit. Todo
+    conteúdo textual das ocorrências é escapado antes de entrar na marcação.
+    A função apenas gera o conteúdo; o chamador decide salvar ou oferecer download.
+    """
     esc = lambda value: html.escape(str(value), quote=True)
     s = audit.summary
     rows = "".join("<tr>" + "".join(f"<td>{esc(item[key])}</td>" for key in FIELDS) + "</tr>" for item in audit.findings)

@@ -16,6 +16,23 @@ MAX_CELL_CHARS = 2_000
 
 
 def _frame(rows):
+    """Converte cabeçalho e registros já lidos em tabela textual limitada.
+
+    Args:
+        rows: Lista de linhas; a primeira contém os nomes das colunas.
+
+    Returns:
+        DataFrame de strings com cabeçalhos aparados e valores preservados.
+        Datas nativas viram ISO. attrs['native_numeric'] registra posições
+        de números nativos para evitar reinterpretar o separador do Excel.
+
+    Raises:
+        ValueError: Cabeçalho inválido/repetido, falta de dados, limites de
+            linhas/células/colunas ou tamanho de campo excedidos, ou linha irregular.
+
+    A posição dos números nativos é de base zero e acompanha a ordem das linhas,
+    não o índice de uma tabela externa. Valores nulos viram texto vazio.
+    """
     if not rows or not rows[0]:
         raise ValueError("O arquivo está vazio ou não tem cabeçalho.")
     headers = [str(x).strip() if x is not None else "" for x in rows[0]]
@@ -35,6 +52,7 @@ def _frame(rows):
         values = []
         for column, value in zip(headers, row):
             if isinstance(value, Number) and not isinstance(value, bool):
+                # O número do Excel já é nativo: seu ponto decimal não depende da opção textual.
                 native_numeric.append((position, column))
             if isinstance(value, (datetime, date)):
                 value = value.date().isoformat() if isinstance(value, datetime) else value.isoformat()
@@ -49,6 +67,26 @@ def _frame(rows):
 
 
 def read_table(content: bytes, filename: str, delimiter="auto", encoding="utf-8-sig", sheet=0):
+    """Lê bytes de CSV ou uma aba XLSX, aplicando limites antes da auditoria.
+
+    Args:
+        content: Conteúdo do arquivo, não vazio e com até MAX_BYTES bytes.
+        filename: Nome usado somente para determinar a extensão csv/xlsx.
+        delimiter: Separador CSV explícito ou auto; detecção inconclusiva usa vírgula.
+        encoding: UTF-8 com BOM opcional ou Windows-1252 para CSV.
+        sheet: Índice inteiro de base zero da aba XLSX; ignorado em CSV.
+
+    Returns:
+        DataFrame textual produzido por _frame, sem gravar o arquivo recebido.
+
+    Raises:
+        ValueError: Formato, conteúdo, parâmetros CSV ou aba inválidos;
+            fórmulas presentes; arquivo ilegível ou algum limite ultrapassado.
+
+    CSV ignora linhas completamente vazias. XLSX usa leitura sem links externos,
+    rejeita fórmulas e limita tamanho descompactado/entradas do ZIP. Datas e
+    números nativos conservam metadados para a validação de formatos.
+    """
     if not content or len(content) > MAX_BYTES:
         raise ValueError("Envie um arquivo de até 10 MB com conteúdo.")
     suffix = Path(filename).suffix.lower()
@@ -93,6 +131,7 @@ def read_table(content: bytes, filename: str, delimiter="auto", encoding="utf-8-
                 raise ValueError("Limite de 500.000 células por aba.")
             rows = []
             for cells in selected.iter_rows():
+                # Não validar resultados em cache de fórmulas que podem estar desatualizados.
                 if any(cell.data_type == "f" for cell in cells):
                     raise ValueError("A aba contém fórmulas. Exporte os valores para CSV ou XLSX sem fórmulas.")
                 rows.append([cell.value for cell in cells])

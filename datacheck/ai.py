@@ -8,6 +8,7 @@ from .engine import Audit
 from .reports import explain_local
 
 
+# Contrato de uma prioridade gerada: ID da regra, explicação e ação sugerida.
 class Priority(BaseModel):
     model_config = ConfigDict(extra="forbid")
     rule: str
@@ -15,6 +16,7 @@ class Priority(BaseModel):
     action: str = Field(min_length=1, max_length=1200)
 
 
+# Saída estruturada: resumo e até sete prioridades. IDs são conferidos após a resposta.
 class Explanation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     overview: str = Field(min_length=1, max_length=1600)
@@ -22,6 +24,26 @@ class Explanation(BaseModel):
 
 
 def explain_ai(audit: Audit, approved=False, client=None, model=None):
+    """Organiza prioridades a partir de contagens agregadas com consentimento explícito.
+
+    Args:
+        audit: Auditoria concluída; os registros originais não entram no payload.
+        approved: Deve ser True mesmo quando um cliente de teste é utilizado.
+        client: Cliente compatível com responses.create, opcional para testes.
+        model: Modelo explícito ou valor de OPENAI_MODEL.
+
+    Returns:
+        Dicionário overview/priorities. Sem ocorrências, retorna explicação
+        local após conferir a autorização, sem chamar o provedor.
+
+    Raises:
+        ValueError: Ausência de consentimento, modelo ou chave necessária.
+        RuntimeError: Falha externa, JSON inválido ou referência de regra inválida.
+
+    Envia somente rows, affected_rows, findings e by_rule. Não envia nome de
+    arquivo, nomes de colunas ou células. Valida formato e IDs, não a correção
+    semântica de toda frase. Uma falha não modifica o resultado determinístico.
+    """
     if not approved:
         raise ValueError("Autorize o envio das contagens agregadas antes de usar IA.")
     if not audit.findings:
@@ -34,6 +56,7 @@ def explain_ai(audit: Audit, approved=False, client=None, model=None):
             raise ValueError("Configure OPENAI_API_KEY no ambiente do servidor.")
         from openai import OpenAI
         client = OpenAI(timeout=25, max_retries=1)
+    # Lista fechada de agregados: impede incluir acidentalmente células e cabeçalhos.
     payload = {key: audit.summary[key] for key in ["rows", "affected_rows", "findings", "by_rule"]}
     try:
         response = client.responses.create(

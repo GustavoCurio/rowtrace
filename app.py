@@ -28,6 +28,7 @@ h1,h2,h3{letter-spacing:-.04em}h1{font-size:2.6rem!important}
 @media(max-width:700px){.step{font-size:12px}.steps{gap:6px}}
 </style>""", unsafe_allow_html=True)
 st.markdown('<div class="audit-brand">◈ DATACHECK / AUDITORIA DE DADOS</div>', unsafe_allow_html=True)
+# A navegação usa estado da sessão para manter arquivo e regras entre as etapas.
 step = st.session_state.get("audit_step", 1)
 steps = ["Escolher arquivo", "Definir regras", "Conferir resultado"]
 st.markdown('<div class="steps">' + ''.join(f'<div class="step {"active" if i == step else "done" if i < step else ""}">0{i} &nbsp; {label}</div>' for i,label in enumerate(steps,1)) + '</div>', unsafe_allow_html=True)
@@ -80,6 +81,7 @@ content, name, delimiter, encoding, sheet, is_demo = st.session_state["audit_inp
 table = read_table(content, name, delimiter, encoding, sheet)
 dataset_key = st.session_state["dataset_key"]
 columns = list(table.columns)
+# Widgets ocultos entre etapas podem perder estado; a configuração salva repõe seus valores.
 cfg = st.session_state.get("audit_rules", {})
 pair = cfg.get("date_pairs", [["data_compra", "data_entrega"]] if is_demo else [])
 pair = pair[0] if pair else None
@@ -125,6 +127,7 @@ if step == 2:
         st.rerun()
     st.stop()
 
+# As etapas anteriores interrompem o script até existir uma auditoria concluída.
 result = st.session_state.result
 s = result.summary
 token = dataset_key + json.dumps(result.rules, sort_keys=True)

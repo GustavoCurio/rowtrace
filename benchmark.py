@@ -14,6 +14,17 @@ from datacheck.io import read_table
 
 
 def synthetic(size):
+    """Gera bytes CSV de pedidos fictícios com erros em posições conhecidas.
+
+    Args:
+        size: Número de registros a gerar.
+
+    Returns:
+        CSV UTF-8 com as colunas esperadas por orders_rules. Em cada grupo de
+        cem registros, as cinco primeiras posições recebem, respectivamente,
+        valor negativo, ausência, número inválido, data impossível e sequência
+        invertida. Os demais registros são válidos para essas regras.
+    """
     rows = []
     for i in range(size):
         row = [f"P{i:06}", "Cliente fictício", "50.00", "2026-01-10", "2026-01-12"]
@@ -33,6 +44,22 @@ def synthetic(size):
 
 
 def run(sizes=(1000, 10000, 50000), repeats=3):
+    """Mede separadamente a leitura e a auditoria, conferindo as ocorrências injetadas.
+
+    Args:
+        sizes: Tamanhos positivos compatíveis com os limites de read_table.
+        repeats: Quantidade positiva de execuções por tamanho.
+
+    Returns:
+        Relatório com ambiente, método, contagens esperadas/observadas e
+        medianas em milissegundos. Esta função não grava o relatório.
+
+    Raises:
+        AssertionError: O motor não encontra a quantidade prevista de problemas.
+
+    Não mede interface, exportação, IA ou comparação com trabalho humano.
+    A contagem esperada é derivada das posições injetadas, não do auditor.
+    """
     output = {"python": platform.python_version(), "platform": platform.system(), "processor": platform.processor(),
               "repeats": repeats, "method": "mediana; leitura CSV e motor medidos separadamente; dados sintéticos; sem IA ou comparação humana", "results": []}
     for size in sizes:
